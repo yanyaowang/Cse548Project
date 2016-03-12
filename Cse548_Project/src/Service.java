@@ -9,6 +9,8 @@ public class Service implements Runnable{
 	public static final int backLog = 5;
 	public static final int bufferSize = 4096;
 	private volatile boolean onOff = true;
+	private volatile int countClient = 0;	//client number count
+	private volatile int id = -1;
 	private String header;
 	private String log;
 	private String error;
@@ -16,9 +18,10 @@ public class Service implements Runnable{
 	private int dstPort;
 	private InetAddress srcAddress;
 	private InetAddress dstAddress;
-	private ServerSocket serverSocket;
+	private volatile ServerSocket serverSocket;
 	private List connections = Collections.synchronizedList(new ArrayList());
 	private Object locker = new Object();
+	Socket socketOnServer;
 	//private ServerSocket[] serverSocket = new ServerSocket[4];
 	
 	public Service(int srcPort, InetAddress dstAddress, int dstPort)
@@ -77,19 +80,23 @@ public class Service implements Runnable{
 		{
 			while(onOff)
 			{
-				//server's socket connected to the outside clients
-				Socket socketOnServer = serverSocket.accept();
-				//dstSocket -- robot
-				Socket dstSocket = new Socket(dstAddress, dstPort);
-				
-				DuplicateStream serverToRobot = new DuplicateStream(socketOnServer, dstSocket);
-				DuplicateStream robotToServer = new DuplicateStream(dstSocket, socketOnServer);
-				
-				synchronized(locker)
+				if(countClient <= FrontPanel.MAX_CLIENT_NUM)
 				{
+					//server's socket connected to the outside clients
+					socketOnServer = serverSocket.accept();
+					countClient++;
+					//dstSocket -- robot
+					Socket dstSocket = new Socket(dstAddress, dstPort);
 					
-					serverToRobot.start();
-					robotToServer.start();
+					DuplicateStream serverToRobot = new DuplicateStream(socketOnServer, dstSocket);
+					DuplicateStream robotToServer = new DuplicateStream(dstSocket, socketOnServer);
+					
+					synchronized(locker)
+					{
+						
+						serverToRobot.start();
+						robotToServer.start();
+					}
 				}
 			}
 			
@@ -106,10 +113,22 @@ public class Service implements Runnable{
 	{
 		System.out.println(this.onOff);
 		this.onOff = false;
+		try {
+			this.serverSocket.close();
+		} catch (IOException e) {
+			
+			e.printStackTrace();
+		}
+		this.serverSocket = null;
+		this.socketOnServer = null;
 		System.out.println(this.onOff);
 		System.out.println("onOff is set to off!");
 	}
 	
+	protected void stopClient()
+	{
+		
+	}
 	
 	protected class DuplicateStream extends Thread
 	{
@@ -156,5 +175,15 @@ public class Service implements Runnable{
 			}
 		}
 		
+	}
+	
+	protected synchronized int getId()
+	{
+		return this.id;
+	}
+	
+	protected synchronized void setId(int id)
+	{
+		this.id = id;
 	}
 }
