@@ -8,7 +8,7 @@ import java.io.*;
 public class Service implements Runnable{
 	public static final int backLog = 5;
 	public static final int bufferSize = 4096;
-	private boolean onOff = true;
+	private volatile boolean onOff = true;
 	private String header;
 	private String log;
 	private String error;
@@ -93,15 +93,21 @@ public class Service implements Runnable{
 				}
 			}
 			
+			if(!onOff)
+				System.out.println("run is set to off!");
+			
 		} catch(IOException ioe) {
 			System.out.println("Exception in run method of Service class...");
 			ioe.printStackTrace();
 		}
 	}
 	
-	private void stopService()
+	protected void stopService()
 	{
+		System.out.println(this.onOff);
 		this.onOff = false;
+		System.out.println(this.onOff);
+		System.out.println("onOff is set to off!");
 	}
 	
 	
@@ -126,11 +132,13 @@ public class Service implements Runnable{
 				InputStream ips = sockIn.getInputStream();
 				OutputStream ops = sockOut.getOutputStream();
 				
-				while((length = ips.read(buffer)) > 0)
+				while((length = ips.read(buffer)) > 0 && onOff)
 				{
 					ops.write(buffer, 0, length);
 					ops.flush();
 				}
+				if(!onOff)
+					System.out.println("DuplicateStream is set to off!");
 			
 			}catch(Exception e) {
 				//System.out.println("DuplicateStream run method Exception...");
