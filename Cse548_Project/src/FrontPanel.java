@@ -91,6 +91,7 @@ class FrontPanel extends JPanel
        }
     }
     
+    //if the return Jpanel is a null, the server number will be more than the Maximum limitation
     private JPanel addServerPanel()
     {
        JPanel tempJPanel = new JPanel();             
@@ -98,6 +99,7 @@ class FrontPanel extends JPanel
        
        if(debug)
        {
+    	   System.out.println(Service.getTimeString());
 	       System.out.println("addServerPanel() -> " + serverIp + ":" + serverPort);
 	       System.out.println("addServerPanel() -> " + robotIp + ":" + robotPort);
        }
@@ -107,15 +109,16 @@ class FrontPanel extends JPanel
        {
     	   buildOneServerPanel(serverFlag);
     	   serverFlag = -1;
+    	   
+    	   for(int i = 0; i < MAX_SERVER_NUM; i++)
+           {
+        	   if(serv[i] != null)
+        		   tempJPanel.add(serverPanelList[i]);
+           }
        }
-  
-       //cleanPanel(tempJPanel);
-       for(int i = 0; i < MAX_SERVER_NUM; i++)
-       {
-    	   if(serv[i] != null)
-    		   tempJPanel.add(serverPanelList[i]);
-       }
-       
+       else
+    	   tempJPanel = null;
+    	        
        return tempJPanel;
     }
     
@@ -158,10 +161,15 @@ class FrontPanel extends JPanel
 	   
 	    serverTextArea[index] = new JTextArea();
 	    
-	    for(int row = 0; row < MAX_CLIENT_NUM; row++)
+	    for(Object element: serv[index].getClientSet())
 	    {
-		    temp += "<<   " + clientsConnection[row] + "   >>" + "\n";
+	    	temp += element + "\n";
 	    }
+	    
+//	    for(int row = 0; row < MAX_CLIENT_NUM; row++)
+//	    {
+//		    temp += "<<   " + clientsConnection[row] + "   >>" + "\n";
+//	    }
 	    serverTextArea[index].setText(temp);
 	    temp = "";
 	    serverTextArea[index].setEditable(false);
@@ -204,21 +212,28 @@ class FrontPanel extends JPanel
        public void actionPerformed(ActionEvent event) 
        {
           //respond model button clicks with the top region's changes
+    	  //add a new server button
           if(event.getSource() == addServerJButton)
           {
-         	  popServerDialog();
-        	  //System.out.println("-------------------------------" + getServerIp() + "***********");
-        	  if(serverIp.matches(IPADDRESS_PATTERN) && robotIp.matches(IPADDRESS_PATTERN))
-        	  {  		  
-        		  bodyPane.setViewportView(addServerPanel());
-        		  //bodyPane.setViewportView(addServer(connections, clientsConnection));
+        	  if(-1 != checkAvailablePos())
+        	  {
+	         	  popServerDialog();
+	        	  //System.out.println("-------------------------------" + getServerIp() + "***********");
+	        	  if(serverIp.matches(IPADDRESS_PATTERN) && robotIp.matches(IPADDRESS_PATTERN))
+	        	  {  		  
+	        		  bodyPane.setViewportView(addServerPanel());
+	        		  //bodyPane.setViewportView(addServer(connections, clientsConnection));
+	        	  }
+	        	  else
+	        	  {
+	        		  JOptionPane.showMessageDialog(null, "Please input correct IP and Port!");
+	        	  }
         	  }
         	  else
-        	  {
-        		  JOptionPane.showMessageDialog(null, "Please input correct IP and Port!");
-        	  }
+        		  JOptionPane.showMessageDialog(null, "The Server numbers reach the Maximum...");
         		  
           }
+          
           for(int index = 0; index < MAX_SERVER_NUM; index++)
           {
         	  //serverButtonList matching disconnect button of a server

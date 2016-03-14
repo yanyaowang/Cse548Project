@@ -1,8 +1,12 @@
 import java.net.*;
-import java.util.ArrayList;
+import java.text.SimpleDateFormat;
+//import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
+import java.util.Formatter;
 //import java.util.LinkedList;
 import java.util.List;
+import java.util.*;
 import java.io.*;
 
 public class Service implements Runnable{
@@ -10,10 +14,10 @@ public class Service implements Runnable{
 	public static final int bufferSize = 4096;
 	private volatile boolean onOff = true;
 	private volatile int countClient = 0;	//client number count
-	private volatile int id = -1;
+	private int id = -1;
 	private String header = "";
-	private String log;
-	private String error;
+	private String log = "";
+	private String error = "";
 	private int srcPort;
 	private int dstPort;
 	private InetAddress srcAddress;
@@ -21,8 +25,14 @@ public class Service implements Runnable{
 	private volatile ServerSocket serverSocket;
 //	private List connections = Collections.synchronizedList(new ArrayList());
 	private Object locker = new Object();
-	Socket socketOnServer;
-	private String[] clientIp;
+	private Socket socketOnServer;
+	private Socket dstSocket;
+	private DuplicateStream serverToRobot;
+	private DuplicateStream robotToServer;
+	private String[] clientIp = new String[FrontPanel.MAX_CLIENT_NUM];
+	private Set<String> clientSet = new HashSet<String>();
+	private static SimpleDateFormat sdf = new SimpleDateFormat("yyy.MM.dd 'at' hh:mm:ss z");
+	private static Date currentTime;
 	
 	public Service(int srcPort, InetAddress dstAddress, int dstPort)
 	{
@@ -47,6 +57,7 @@ public class Service implements Runnable{
 			this.serverSocket = new ServerSocket(srcPort, backLog, srcAddress);
 		} catch (IOException e) {
 			System.out.println("Service Constructor Error!");
+			this.error += this.header + e + "\n\n";
 			e.printStackTrace();
 		}
 		
@@ -54,6 +65,7 @@ public class Service implements Runnable{
 		this.srcPort = srcPort;
 		this.dstAddress = dstAddress;
 		this.dstPort = dstPort;
+		
 		this.header = srcAddress.toString() + ":" + srcPort + " ---> " + dstAddress.toString()
 				  + ": " + dstPort;
 	}
@@ -80,7 +92,11 @@ public class Service implements Runnable{
 	
 	public void run() 
 	{
+		System.out.println(getTimeString());
 		System.out.println(header + " Start running...");
+		
+		log += getTimeString() + "\n";
+		log += header + " Start runing..." + "\n\n";
 		try
 		{
 			while(onOff)
@@ -90,12 +106,17 @@ public class Service implements Runnable{
 				{
 					//server's socket connected to the outside clients
 					socketOnServer = serverSocket.accept();
-					countClient++;
-					//dstSocket -- robot
-					Socket dstSocket = new Socket(dstAddress, dstPort);
 					
-					DuplicateStream serverToRobot = new DuplicateStream(socketOnServer, dstSocket);
-					DuplicateStream robotToServer = new DuplicateStream(dstSocket, socketOnServer);
+					clientSet.add(getTimeString() + "  client " + socketOnServer.toString() + 
+								  " connects to the server...");
+					
+					countClient++;
+					
+					//dstSocket -- robot
+					dstSocket = new Socket(dstAddress, dstPort);
+					
+					serverToRobot = new DuplicateStream(socketOnServer, dstSocket);
+					robotToServer = new DuplicateStream(dstSocket, socketOnServer);
 					
 					synchronized(locker)
 					{
@@ -111,30 +132,46 @@ public class Service implements Runnable{
 		} catch(IOException ioe) {
 			if(FrontPanel.debug)
 				System.out.println("Exception in run method of Service class...");
+			this.error += getTimeString() + "\n";
+			this.error += this.header + ioe + "\n\n";
 			ioe.printStackTrace();
 		}
+		
 	}
 	
 	protected void stopService()
 	{
 		//System.out.println(this.onOff);
 		this.onOff = false;
+			
 		try {
 			this.serverSocket.close();
 		} catch (IOException e) {
-			
+			this.error += this.header + e + "\n\n";
 			e.printStackTrace();
 		}
-		this.serverSocket = null;
+
 		this.socketOnServer = null;
+		this.dstSocket = null;
+		this.serverSocket = null;
+		this.robotToServer = null;
 		
-		System.out.println(this.onOff);
+		log += getTimeString() + "\n";
+		log += header + " is Stoped...\n\n";
+		
+		//System.out.println(this.onOff);
 		//System.out.println("The server" +  this.serverSocket.getInetAddress() + "is turned off!");
 	}
 	
-	protected void stopClient()
+	public static String getTimeString()
 	{
-		
+		 currentTime = new Date();
+		return sdf.format(currentTime);
+	}
+	
+	protected Set getClientSet()
+	{
+		return this.clientSet;
 	}
 	
 	protected class DuplicateStream extends Thread
@@ -169,6 +206,8 @@ public class Service implements Runnable{
 			}catch(Exception e) {
 				//System.out.println("DuplicateStream run method Exception...");
 				//e.printStackTrace();
+				error += getTimeString() + "\n";
+				error += header + e + "\n\n";
 				countClient--;
 				System.out.println("Connection between " + sockIn.getInetAddress() + " and " + sockOut.getInetAddress() + " break...");
 			}
@@ -178,19 +217,22 @@ public class Service implements Runnable{
 				sockIn.close();
 				sockOut.close();
 			}catch(Exception ee) {
-				System.out.println("Socket Close Error!");
+				if(FrontPanel.debug)
+					System.out.println("Socket Close Error!");
+				error += getTimeString() + "\n";
+				error += header + ee + "\n\n";
 				ee.printStackTrace();
 			}
 		}
 		
 	}
 	
-	protected synchronized int getId()
+	protected int getId()
 	{
 		return this.id;
 	}
 	
-	protected synchronized void setId(int id)
+	protected void setId(int id)
 	{
 		this.id = id;
 	}
