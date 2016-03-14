@@ -2,13 +2,14 @@ import java.awt.*;
 import java.io.*;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
+//import java.util.ArrayList;
 import java.awt.event.*;
 
 import javax.swing.*;
 
 class FrontPanel extends JPanel
 {
+	public static final boolean debug = true;
 	public static final int MAX_SERVER_NUM = 4;
 	public static final int MAX_CLIENT_NUM = 2;
 	private static final String IPADDRESS_PATTERN = 
@@ -16,7 +17,7 @@ class FrontPanel extends JPanel
 			"([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\." +
 			"([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\." +
 			"([01]?\\d\\d?|2[0-4]\\d|25[0-5])$";
-
+	
 	String temp = "";
 	String serverIp = null;
 	int serverPort = 0;
@@ -27,6 +28,7 @@ class FrontPanel extends JPanel
 	JButton addServerJButton;
 	JLabel topLabel;
 	JScrollPane bodyPane; 
+	JLabel[] serverImage = new JLabel[MAX_SERVER_NUM];
 	JLabel[] serverTitle = new JLabel[MAX_SERVER_NUM];
 	JTextArea[] serverTextArea = new JTextArea[MAX_SERVER_NUM];
 	JButton[] serverButtonList =new JButton[MAX_SERVER_NUM];
@@ -38,7 +40,7 @@ class FrontPanel extends JPanel
 	ThreadList[] threadList = new ThreadList[MAX_SERVER_NUM];
 	Thread[] thread = new Thread[MAX_SERVER_NUM];
 	
-	String[] connections = {"Proxy Server 1", "Proxy Server 2", "Proxy Server 3", "Proxy Server 4"};
+	//String[] connections = {"Proxy Server 1", "Proxy Server 2", "Proxy Server 3", "Proxy Server 4"};
 	
 	String[] clientsConnection = {"From [client 1: 192.168.0.50:22] To [Robot 1: 192.168.0.11:6789]", 
 					   "From [client 2: 192.168.0.51:22] To [Robot 1: 192.168.0.12:6789]", 
@@ -63,18 +65,20 @@ class FrontPanel extends JPanel
        private TopPanel()
        {
           setPreferredSize(topPanelDimension);
-          JPanel panel = new JPanel();
+
           topLabel = new JLabel();
-          //topLabel.setText("Proxy Server");
-          topLabel.setText("<html><h1>Proxy Server</h1></html>");
-          topLabel.setBounds(0, 20, 200, 50);
+          topLabel.setText("Proxy Server Manager");
+          topLabel .setFont(new Font(topLabel.getName(), Font.PLAIN, 30));
           
           addServerJButton = new JButton("Add a New Server");          
           addServerJButton.addActionListener(new ButtonListener());
+         
+          topLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+          addServerJButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+          this.setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
           
-          panel.add(topLabel);
-          panel.add(addServerJButton);
-          add(panel);
+          add(topLabel);
+          add(addServerJButton);
        }
     }
     
@@ -92,18 +96,20 @@ class FrontPanel extends JPanel
        JPanel tempJPanel = new JPanel();             
        tempJPanel.setLayout(new fitWidthFlowLayout());
        
-       System.out.println(serverIp);
-       System.out.println(serverPort);
-       System.out.println(robotIp);
-       System.out.println(robotPort);
+       if(debug)
+       {
+	       System.out.println("addServerPanel() -> " + serverIp + ":" + serverPort);
+	       System.out.println("addServerPanel() -> " + robotIp + ":" + robotPort);
+       }
        
+       //check if the server is more than the MAX_SERVER_NUM
        if((serverFlag = addServer()) != -1)
        {
     	   buildOneServerPanel(serverFlag);
     	   serverFlag = -1;
        }
   
-       cleanPanel(tempJPanel);
+       //cleanPanel(tempJPanel);
        for(int i = 0; i < MAX_SERVER_NUM; i++)
        {
     	   if(serv[i] != null)
@@ -111,6 +117,22 @@ class FrontPanel extends JPanel
        }
        
        return tempJPanel;
+    }
+    
+    private JPanel deleteServerPanel(int index)
+    {
+    	JPanel tempJPanel = new JPanel();             
+        tempJPanel.setLayout(new fitWidthFlowLayout());
+        
+        serv[index] = null;
+        
+        for(int i = 0; i < MAX_SERVER_NUM; i++)
+        {
+     	   if(serv[i] != null)
+     		   tempJPanel.add(serverPanelList[i]);
+        }
+        
+        return tempJPanel;
     }
     
     
@@ -121,8 +143,12 @@ class FrontPanel extends JPanel
 		//server's title
 	    serverTitle[index] = new JLabel();    
 	    serverTitle[index].setText("Proxy Server " + Integer.toString(index + 1));
-	    serverTitle[index].setBounds(0, 20, 200, 50);
+	    serverTitle[index].setFont(new Font(topLabel.getName(), Font.PLAIN, 20));
+	    //serverTitle[index].setBounds(0, 20, 300, 80);
 	    serverTitle[index].setAlignmentX(Component.CENTER_ALIGNMENT);
+	    
+	    serverImage[index] = new JLabel((new ImageIcon("chilun-xx.gif")));
+	    serverImage[index].setAlignmentX(Component.CENTER_ALIGNMENT);
 	   
 	    //disconnect buttons
 	    serverButtonList[index] = new JButton("Disconnect");
@@ -131,6 +157,7 @@ class FrontPanel extends JPanel
 	    serverPanelList[index].setLayout(new BoxLayout(serverPanelList[index], BoxLayout.PAGE_AXIS));
 	   
 	    serverTextArea[index] = new JTextArea();
+	    
 	    for(int row = 0; row < MAX_CLIENT_NUM; row++)
 	    {
 		    temp += "<<   " + clientsConnection[row] + "   >>" + "\n";
@@ -140,10 +167,8 @@ class FrontPanel extends JPanel
 	    serverTextArea[index].setEditable(false);
 	    serverTextArea[index].setBackground(new Color(238, 238, 238));
   
-  	   //serverDetail[0].add(serverTextArea[0]);
- 	   //styleJPanel[index].add(images[index]);  
-  
 	    serverPanelList[index].add(serverTitle[index]);
+	    serverPanelList[index].add(serverImage[index]);
 	    serverPanelList[index].add(serverButtonList[index]);
 	    serverPanelList[index].add(serverTextArea[index]);
 	}
@@ -164,6 +189,8 @@ class FrontPanel extends JPanel
     		serverPort = Integer.parseInt(fieldServerPort.getText());
     		robotIp = fieldRobotIp.getText();
     		robotPort = Integer.parseInt(fieldRobotPort.getText());
+    		temp += "=========   Server " + serverIp + ":" + serverPort + "  ---->  " + robotIp + ": " + 
+    				robotPort + " is running   =========\n";
     	}
     	else
     	{
@@ -191,23 +218,22 @@ class FrontPanel extends JPanel
         		  JOptionPane.showMessageDialog(null, "Please input correct IP and Port!");
         	  }
         		  
-        	  //addMultiInputDialog();  
-            //modelIndex = index;
-            //cleanPanel(bodyPane);
-            //styleList = twoToOneDimensionArray(index, Product.STYLE_TYPE);
-            //bodyPane.setViewportView(stylePanelList(styleList, index));
           }
           for(int index = 0; index < MAX_SERVER_NUM; index++)
           {
         	  //serverButtonList matching disconnect button of a server
 	          if(event.getSource() == serverButtonList[index])
 	          {
-	        	  System.out.println("disconnect button!!");
+	        	  if(debug)
+	        		  System.out.println("disconnect button!!");
 	        	  serv[index].stopService();
 	        	  serv[index] = null;
 	        	  //thread[index].getThreadGroup().destroy();
 	        	  thread[index].stop();
 	        	  thread[index] = null;
+	        	  
+	        	  bodyPane.setViewportView(deleteServerPanel(index));
+	        	
 	          }
           }
        }
@@ -291,7 +317,6 @@ class FrontPanel extends JPanel
 			}
 			else
 			{
-				//serv[i].setId(-1);
 				serv[i] = null;
 				position = i;
 				return position;
@@ -326,7 +351,7 @@ class FrontPanel extends JPanel
 		return this.robotPort;
 	}
     
-  //modify the flowlayout so let the panels in the center region
+	//modify the flowlayout so let the panels in the center region
    	//change lines following the size changes of the center region
       private class fitWidthFlowLayout extends FlowLayout 
       { 
@@ -394,11 +419,11 @@ class FrontPanel extends JPanel
       }
 
      
-  //clean components located on the panel
-    private void cleanPanel(JPanel panel)
-    {
-       panel.removeAll();
-       panel.revalidate();
-       panel.repaint();
-    }
+//  //clean components located on the panel
+//    private void cleanPanel(JPanel panel)
+//    {
+//       panel.removeAll();
+//       panel.revalidate();
+//       panel.repaint();
+//    }
 }

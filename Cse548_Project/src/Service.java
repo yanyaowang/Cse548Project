@@ -11,7 +11,7 @@ public class Service implements Runnable{
 	private volatile boolean onOff = true;
 	private volatile int countClient = 0;	//client number count
 	private volatile int id = -1;
-	private String header;
+	private String header = "";
 	private String log;
 	private String error;
 	private int srcPort;
@@ -19,14 +19,15 @@ public class Service implements Runnable{
 	private InetAddress srcAddress;
 	private InetAddress dstAddress;
 	private volatile ServerSocket serverSocket;
-	private List connections = Collections.synchronizedList(new ArrayList());
+//	private List connections = Collections.synchronizedList(new ArrayList());
 	private Object locker = new Object();
 	Socket socketOnServer;
-	//private ServerSocket[] serverSocket = new ServerSocket[4];
+	private String[] clientIp;
 	
 	public Service(int srcPort, InetAddress dstAddress, int dstPort)
 	{
-		try {
+		try 
+		{
 			this.serverSocket = new ServerSocket(srcPort, backLog);
 		} catch (IOException e) {
 			System.out.println("Service Constructor Error!");
@@ -41,7 +42,8 @@ public class Service implements Runnable{
 	
 	public Service(InetAddress srcAddress, int srcPort, InetAddress dstAddress, int dstPort)
 	{
-		try {
+		try 
+		{
 			this.serverSocket = new ServerSocket(srcPort, backLog, srcAddress);
 		} catch (IOException e) {
 			System.out.println("Service Constructor Error!");
@@ -52,11 +54,14 @@ public class Service implements Runnable{
 		this.srcPort = srcPort;
 		this.dstAddress = dstAddress;
 		this.dstPort = dstPort;
+		this.header = srcAddress.toString() + ":" + srcPort + " ---> " + dstAddress.toString()
+				  + ": " + dstPort;
 	}
 	public Service(InetAddress srcAddress, int srcPort, InetAddress dstAddress, int dstPort, 
 				   String log, String error)
 	{
-		try {
+		try 
+		{
 			this.serverSocket = new ServerSocket(srcPort, backLog, srcAddress);
 		} catch (IOException e) {
 			System.out.println("Service Constructor Error!");
@@ -75,12 +80,13 @@ public class Service implements Runnable{
 	
 	public void run() 
 	{
-		System.out.println(header + " : start running...");
+		System.out.println(header + " Start running...");
 		try
 		{
 			while(onOff)
 			{
-				if(countClient <= FrontPanel.MAX_CLIENT_NUM)
+				//when client is more than the MAX_CLIENT_NUM, the server stops to accept
+				if(countClient < FrontPanel.MAX_CLIENT_NUM)
 				{
 					//server's socket connected to the outside clients
 					socketOnServer = serverSocket.accept();
@@ -93,25 +99,25 @@ public class Service implements Runnable{
 					
 					synchronized(locker)
 					{
-						
 						serverToRobot.start();
 						robotToServer.start();
 					}
 				}
 			}
 			
-			if(!onOff)
+			if(!onOff && FrontPanel.debug)
 				System.out.println("run is set to off!");
 			
 		} catch(IOException ioe) {
-			System.out.println("Exception in run method of Service class...");
+			if(FrontPanel.debug)
+				System.out.println("Exception in run method of Service class...");
 			ioe.printStackTrace();
 		}
 	}
 	
 	protected void stopService()
 	{
-		System.out.println(this.onOff);
+		//System.out.println(this.onOff);
 		this.onOff = false;
 		try {
 			this.serverSocket.close();
@@ -121,8 +127,9 @@ public class Service implements Runnable{
 		}
 		this.serverSocket = null;
 		this.socketOnServer = null;
+		
 		System.out.println(this.onOff);
-		System.out.println("onOff is set to off!");
+		//System.out.println("The server" +  this.serverSocket.getInetAddress() + "is turned off!");
 	}
 	
 	protected void stopClient()
@@ -162,6 +169,7 @@ public class Service implements Runnable{
 			}catch(Exception e) {
 				//System.out.println("DuplicateStream run method Exception...");
 				//e.printStackTrace();
+				countClient--;
 				System.out.println("Connection between " + sockIn.getInetAddress() + " and " + sockOut.getInetAddress() + " break...");
 			}
 			
