@@ -7,7 +7,7 @@ import javax.swing.*;
 
 class FrontPanel extends JPanel
 {
-	public static final boolean debug = true;
+	public static final boolean debug = false;
 	public static final int MAX_SERVER_NUM = 4;
 	public static final int MAX_CLIENT_NUM = 2;
 	private static final String IPADDRESS_PATTERN = "^([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\." +

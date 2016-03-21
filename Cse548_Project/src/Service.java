@@ -90,11 +90,12 @@ public class Service implements Runnable
 	
 	public void run() 
 	{
-		System.out.println(getTimeString());
-		System.out.println(header + " Start running...");
+		if(FrontPanel.debug)
+		{
+			System.out.println(getTimeString());
+			System.out.println(header + " Start running...");
+		}
 		
-		//log += getTimeString() + "\n";
-		//log += header + " Start runing..." + "\n\n";
 		try
 		{
 			while(onOff)
@@ -112,6 +113,9 @@ public class Service implements Runnable
 					
 					serverToRobot = new DuplicateStream(socketOnServer, dstSocket);
 					robotToServer = new DuplicateStream(dstSocket, socketOnServer);
+					
+					log += getTimeString() + "   " + socketOnServer.getInetAddress() + 
+							" connected to the port " + this.srcPort + "...\n";
 					
 					synchronized(locker)
 					{
@@ -206,9 +210,12 @@ public class Service implements Runnable
 				error += getTimeString() + "\n";
 				error += header + e + "\n\n";
 				countClient--;
-				log += "Connection between " + sockIn.getInetAddress() + " and " + sockOut.getInetAddress() + " break...\n";
 				if(FrontPanel.debug)
-					System.out.println("Connection between " + sockIn.getInetAddress() + " and " + sockOut.getInetAddress() + " break...");
+					System.out.println("Connection between " + sockIn.getInetAddress() + " and " 
+							+ sockOut.getInetAddress() + " break...");
+			}finally {
+				log += getTimeString() + "   Connection between " + sockIn.getInetAddress() + 
+						" and " + sockOut.getInetAddress() + " break...\n";
 			}
 			
 			try
