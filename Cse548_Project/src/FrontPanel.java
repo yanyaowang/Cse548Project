@@ -1,8 +1,6 @@
 import java.awt.*;
-import java.io.*;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-//import java.util.ArrayList;
 import java.awt.event.*;
 
 import javax.swing.*;
@@ -12,19 +10,18 @@ class FrontPanel extends JPanel
 	public static final boolean debug = true;
 	public static final int MAX_SERVER_NUM = 4;
 	public static final int MAX_CLIENT_NUM = 2;
-	private static final String IPADDRESS_PATTERN = 
-			"^([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\." +
-			"([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\." +
-			"([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\." +
+	private static final String IPADDRESS_PATTERN = "^([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\." +
+			"([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\." + "([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\." +
 			"([01]?\\d\\d?|2[0-4]\\d|25[0-5])$";
 	
 	String temp = "";
+	String log = "";
+	String error = "";
 	String serverIp = null;
 	int serverPort = 0;
 	String robotIp = null;
 	int robotPort = 0;
 	int serverFlag;
-//	ArrayList<SrvNode> srvNodeList = new ArrayList<SrvNode>();
 	JButton addServerJButton;
 	JLabel topLabel;
 	JScrollPane bodyPane; 
@@ -32,21 +29,11 @@ class FrontPanel extends JPanel
 	JLabel[] serverTitle = new JLabel[MAX_SERVER_NUM];
 	JTextArea[] serverTextArea = new JTextArea[MAX_SERVER_NUM];
 	JButton[] serverButtonList =new JButton[MAX_SERVER_NUM];
-	//JPanel[] serverDetail = new JPanel[MAX_SERVER_NUM];
 	JPanel[] serverPanelList = new JPanel[MAX_SERVER_NUM];
 	Dimension topPanelDimension = new Dimension(800, 80);
-	//ServerList serverList = new ServerList();
 	Service[] serv = new Service[MAX_SERVER_NUM];
-	ThreadList[] threadList = new ThreadList[MAX_SERVER_NUM];
 	Thread[] thread = new Thread[MAX_SERVER_NUM];
 	
-	//String[] connections = {"Proxy Server 1", "Proxy Server 2", "Proxy Server 3", "Proxy Server 4"};
-	
-	String[] clientsConnection = {"From [client 1: 192.168.0.50:22] To [Robot 1: 192.168.0.11:6789]", 
-					   "From [client 2: 192.168.0.51:22] To [Robot 1: 192.168.0.12:6789]", 
-					   "From [client 3: 192.168.0.52:22] To [Robot 1: 192.168.0.13:1234]",
-					   "From [client 4: 192.168.0.53:22] To [Robot 1: 192.168.0.14:2345]",
-					   "From [client 5: 192.168.0.54:22] To [Robot 1: 192.168.0.15:2345]"};
 	
 	public FrontPanel()
     {
@@ -107,6 +94,7 @@ class FrontPanel extends JPanel
        //check if the server is more than the MAX_SERVER_NUM
        if((serverFlag = addServer()) != -1)
        {
+
     	   buildOneServerPanel(serverFlag);
     	   serverFlag = -1;
     	   
@@ -147,7 +135,6 @@ class FrontPanel extends JPanel
 	    serverTitle[index] = new JLabel();    
 	    serverTitle[index].setText("Proxy Server " + Integer.toString(index + 1));
 	    serverTitle[index].setFont(new Font(topLabel.getName(), Font.PLAIN, 20));
-	    //serverTitle[index].setBounds(0, 20, 300, 80);
 	    serverTitle[index].setAlignmentX(Component.CENTER_ALIGNMENT);
 	    
 	    serverImage[index] = new JLabel((new ImageIcon("chilun-xx.gif")));
@@ -160,16 +147,6 @@ class FrontPanel extends JPanel
 	    serverPanelList[index].setLayout(new BoxLayout(serverPanelList[index], BoxLayout.PAGE_AXIS));
 	   
 	    serverTextArea[index] = new JTextArea();
-	    
-	    for(Object element: serv[index].getClientSet())
-	    {
-	    	temp += element + "\n";
-	    }
-	    
-//	    for(int row = 0; row < MAX_CLIENT_NUM; row++)
-//	    {
-//		    temp += "<<   " + clientsConnection[row] + "   >>" + "\n";
-//	    }
 	    serverTextArea[index].setText(temp);
 	    temp = "";
 	    serverTextArea[index].setEditable(false);
@@ -197,8 +174,9 @@ class FrontPanel extends JPanel
     		serverPort = Integer.parseInt(fieldServerPort.getText());
     		robotIp = fieldRobotIp.getText();
     		robotPort = Integer.parseInt(fieldRobotPort.getText());
-    		temp += "=========   Server " + serverIp + ":" + serverPort + "  ---->  " + robotIp + ": " + 
-    				robotPort + " is running   =========\n";
+
+    		temp += "=========   " + Service.getTimeString() + "  Server " + serverIp + ":" + serverPort + "  ---->  " 
+    				+ robotIp + ": " + robotPort + " is running   =========\n\n";
     	}
     	else
     	{
@@ -218,11 +196,10 @@ class FrontPanel extends JPanel
         	  if(-1 != checkAvailablePos())
         	  {
 	         	  popServerDialog();
-	        	  //System.out.println("-------------------------------" + getServerIp() + "***********");
+
 	        	  if(serverIp.matches(IPADDRESS_PATTERN) && robotIp.matches(IPADDRESS_PATTERN))
 	        	  {  		  
 	        		  bodyPane.setViewportView(addServerPanel());
-	        		  //bodyPane.setViewportView(addServer(connections, clientsConnection));
 	        	  }
 	        	  else
 	        	  {
@@ -230,7 +207,10 @@ class FrontPanel extends JPanel
 	        	  }
         	  }
         	  else
+        	  {
         		  JOptionPane.showMessageDialog(null, "The Server numbers reach the Maximum...");
+        	  }
+        		  
         		  
           }
           
@@ -241,9 +221,15 @@ class FrontPanel extends JPanel
 	          {
 	        	  if(debug)
 	        		  System.out.println("disconnect button!!");
+	        	  
+	        	  log += serv[index].getLog();
+	        	  log += Service.getTimeString() + "  Server " + serv[index].getSrcAddress() + ":" + serv[index].getSrcPort() 
+	        			  + " is stopped...\n"; 
+	        	  error += serv[index].getError();
+	        	  error += Service.getTimeString() + "  Server " + serv[index].getSrcAddress() + ":" + serv[index].getSrcPort() 
+	        			  + " is stopped...\n";
 	        	  serv[index].stopService();
 	        	  serv[index] = null;
-	        	  //thread[index].getThreadGroup().destroy();
 	        	  thread[index].stop();
 	        	  thread[index] = null;
 	        	  
@@ -340,6 +326,32 @@ class FrontPanel extends JPanel
 		
 		return position;
 	}
+    
+    protected String getFinalLog()
+    {
+    	String temp = "";
+    	for(int i = 0; i < serv.length; i++)
+    	{
+    		if(null != serv[i])
+    			temp += serv[i].getLog();
+    	}
+    	
+    	this.log += temp;
+    	return this.log;
+    }
+    
+    protected String getFinalError()
+    {
+    	String temp = "";
+    	for(int i = 0; i < serv.length; i++)
+    	{
+    		if(null != serv[i])
+    			temp += serv[i].getError();
+    	}
+    	
+    	this.error += temp;
+    	return this.error;
+    }
         
     private void addClient()
 	{
@@ -365,7 +377,7 @@ class FrontPanel extends JPanel
 	{
 		return this.robotPort;
 	}
-    
+	
 	//modify the flowlayout so let the panels in the center region
    	//change lines following the size changes of the center region
       private class fitWidthFlowLayout extends FlowLayout 

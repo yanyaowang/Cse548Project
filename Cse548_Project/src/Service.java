@@ -1,15 +1,10 @@
 import java.net.*;
 import java.text.SimpleDateFormat;
-//import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.Formatter;
-//import java.util.LinkedList;
-import java.util.List;
 import java.util.*;
 import java.io.*;
 
-public class Service implements Runnable{
+public class Service implements Runnable
+{
 	public static final int backLog = 5;
 	public static final int bufferSize = 4096;
 	private volatile boolean onOff = true;
@@ -23,14 +18,12 @@ public class Service implements Runnable{
 	private InetAddress srcAddress;
 	private InetAddress dstAddress;
 	private volatile ServerSocket serverSocket;
-//	private List connections = Collections.synchronizedList(new ArrayList());
 	private Object locker = new Object();
 	private Socket socketOnServer;
 	private Socket dstSocket;
 	private DuplicateStream serverToRobot;
 	private DuplicateStream robotToServer;
-	private String[] clientIp = new String[FrontPanel.MAX_CLIENT_NUM];
-	private Set<String> clientSet = new HashSet<String>();
+	//private ArrayList<ClientNode> clientListForPanelPane = new ArrayList<ClientNode>();
 	private static SimpleDateFormat sdf = new SimpleDateFormat("yyy.MM.dd 'at' hh:mm:ss z");
 	private static Date currentTime;
 	
@@ -67,8 +60,13 @@ public class Service implements Runnable{
 		this.dstPort = dstPort;
 		
 		this.header = srcAddress.toString() + ":" + srcPort + " ---> " + dstAddress.toString()
-				  + ": " + dstPort;
+				  + ":" + dstPort;
+		
+		this.log += getTimeString() + "   " + this.header + "\n  Start Record...\n\n";
+		
+		this.error += getTimeString() + "   " + this.header + "\n  Start Record...\n\n";
 	}
+	
 	public Service(InetAddress srcAddress, int srcPort, InetAddress dstAddress, int dstPort, 
 				   String log, String error)
 	{
@@ -95,8 +93,8 @@ public class Service implements Runnable{
 		System.out.println(getTimeString());
 		System.out.println(header + " Start running...");
 		
-		log += getTimeString() + "\n";
-		log += header + " Start runing..." + "\n\n";
+		//log += getTimeString() + "\n";
+		//log += header + " Start runing..." + "\n\n";
 		try
 		{
 			while(onOff)
@@ -106,10 +104,7 @@ public class Service implements Runnable{
 				{
 					//server's socket connected to the outside clients
 					socketOnServer = serverSocket.accept();
-					
-					clientSet.add(getTimeString() + "  client " + socketOnServer.toString() + 
-								  " connects to the server...");
-					
+									
 					countClient++;
 					
 					//dstSocket -- robot
@@ -141,7 +136,8 @@ public class Service implements Runnable{
 	
 	protected void stopService()
 	{
-		//System.out.println(this.onOff);
+		if(FrontPanel.debug)
+			System.out.println(this.onOff);
 		this.onOff = false;
 			
 		try {
@@ -159,19 +155,17 @@ public class Service implements Runnable{
 		log += getTimeString() + "\n";
 		log += header + " is Stoped...\n\n";
 		
-		//System.out.println(this.onOff);
-		//System.out.println("The server" +  this.serverSocket.getInetAddress() + "is turned off!");
+		if(FrontPanel.debug)
+		{
+			System.out.println(this.onOff);
+			//System.out.println("The server" +  this.serverSocket.getInetAddress() + "is turned off!");
+		}
 	}
 	
 	public static String getTimeString()
 	{
 		 currentTime = new Date();
 		return sdf.format(currentTime);
-	}
-	
-	protected Set getClientSet()
-	{
-		return this.clientSet;
 	}
 	
 	protected class DuplicateStream extends Thread
@@ -204,12 +198,17 @@ public class Service implements Runnable{
 					System.out.println("DuplicateStream is set to off!");
 			
 			}catch(Exception e) {
-				//System.out.println("DuplicateStream run method Exception...");
-				//e.printStackTrace();
+				if(FrontPanel.debug)
+				{
+					System.out.println("DuplicateStream run method Exception...");
+					e.printStackTrace();
+				}
 				error += getTimeString() + "\n";
 				error += header + e + "\n\n";
 				countClient--;
-				System.out.println("Connection between " + sockIn.getInetAddress() + " and " + sockOut.getInetAddress() + " break...");
+				log += "Connection between " + sockIn.getInetAddress() + " and " + sockOut.getInetAddress() + " break...\n";
+				if(FrontPanel.debug)
+					System.out.println("Connection between " + sockIn.getInetAddress() + " and " + sockOut.getInetAddress() + " break...");
 			}
 			
 			try
@@ -235,5 +234,25 @@ public class Service implements Runnable{
 	protected void setId(int id)
 	{
 		this.id = id;
+	}
+	
+	protected String getLog()
+	{
+		return this.log;
+	}
+	
+	protected String getError()
+	{
+		return this.error;
+	}
+	
+	protected int getSrcPort()
+	{
+		return this.srcPort;
+	}
+	
+	protected String getSrcAddress()
+	{
+		return this.srcAddress.toString();
 	}
 }
