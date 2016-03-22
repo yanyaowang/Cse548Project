@@ -23,7 +23,6 @@ public class Service implements Runnable
 	private Socket dstSocket;
 	private DuplicateStream serverToRobot;
 	private DuplicateStream robotToServer;
-	//private ArrayList<ClientNode> clientListForPanelPane = new ArrayList<ClientNode>();
 	private static SimpleDateFormat sdf = new SimpleDateFormat("yyy.MM.dd 'at' hh:mm:ss z");
 	private static Date currentTime;
 	
@@ -162,7 +161,7 @@ public class Service implements Runnable
 		if(FrontPanel.debug)
 		{
 			System.out.println(this.onOff);
-			//System.out.println("The server" +  this.serverSocket.getInetAddress() + "is turned off!");
+			System.out.println("The server" +  this.serverSocket.getInetAddress() + "is turned off!");
 		}
 	}
 	

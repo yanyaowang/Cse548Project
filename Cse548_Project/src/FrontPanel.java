@@ -352,11 +352,6 @@ class FrontPanel extends JPanel
     	this.error += temp;
     	return this.error;
     }
-        
-    private void addClient()
-	{
-		
-	}
 	
 	private String getServerIp()
 	{
@@ -445,12 +440,4 @@ class FrontPanel extends JPanel
          }   
       }
 
-     
-//  //clean components located on the panel
-//    private void cleanPanel(JPanel panel)
-//    {
-//       panel.removeAll();
-//       panel.revalidate();
-//       panel.repaint();
-//    }
 }

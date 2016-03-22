@@ -16,7 +16,6 @@ public class TestPanel extends JFrame
    public static void main(String[] args)
    {
       frame = new JFrame("Proxy Server");
-      //frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
    
       fp = new FrontPanel();
       frame.getContentPane().add(fp);
@@ -33,17 +32,12 @@ public class TestPanel extends JFrame
 				printFile("log.txt", fp.getFinalLog());
 				printFile("error.txt", fp.getFinalError());
 			} catch (IOException e1) {
-				// TODO Auto-generated catch block
 				e1.printStackTrace();
 			} finally{
-				//System.exit(0);
+				System.exit(0);
 			}
-    		  //e.getWindow().dispose();
-    		  System.exit(0);
     	  }
-      	}
-      );
-      
+      	});      
    }
     
    private static void printFile(String file, String content) throws IOException
